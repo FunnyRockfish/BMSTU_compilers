@@ -1,0 +1,4 @@
+ON ABC*+ +++
+OFF *** A++B
+123 ON
+XYZ+ ONABC
