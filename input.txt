@@ -1,0 +1,2 @@
+'hello'    &! -65.555 aRtem777.99
+ 'new line'
