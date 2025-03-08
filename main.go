@@ -1,34 +1,65 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 )
 
 func main() {
-	inputStr := ReadFile()
-	lex := NewLexer(inputStr)
+	consoleMode := flag.Bool("c", false, "Однопроходный")
+	fileMode := flag.Bool("f", false, "Разбор файла")
+
+	flag.Parse()
+	var lexer *Lexer
+
+	if *consoleMode {
+		reader := bufio.NewReader(os.Stdin)
+		lexer = NewLexer(reader)
+	} else if *fileMode {
+		inputStr := ReadFile()
+		lexer = NewLexer(inputStr)
+	}
 	for {
-		tok := lex.NextToken()
+		tok := lexer.NextToken()
 		if tok.Type == TOKEN_EOF {
 			PrintTokens(tok)
 			break
 		}
 		PrintTokens(tok)
+
+		if tok.Type == TOKEN_IDENT && lexer.reader != nil {
+			fmt.Println("Таблица идентификаторов:")
+			for key, val := range lexer.identMap {
+				fmt.Println(key, "->", val)
+			}
+		}
+
+		if len(lexer.errors) != 0 && lexer.reader != nil {
+			fmt.Println("Ошибки разбора:")
+			for _, err := range lexer.errors {
+				fmt.Println(err)
+			}
+			fmt.Println()
+
+			// Важно: очищаем ошибки после вывода!
+			lexer.errors = nil
+		}
 	}
 
 	fmt.Println()
-	if len(lex.errors) != 0 {
+	if len(lexer.errors) != 0 {
 		fmt.Println("Ошибки разбора: ")
-		for _, err := range lex.errors {
+		for _, err := range lexer.errors {
 			fmt.Println(err)
 		}
 		fmt.Println()
 	}
 
 	fmt.Println("Таблица идентификаторов:")
-	for key, val := range lex.identMap {
+	for key, val := range lexer.identMap {
 		fmt.Println(key, "->", val)
 	}
 }
