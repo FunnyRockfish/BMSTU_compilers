@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -40,7 +39,7 @@ type Lexer struct {
 	identMap     map[string]int
 	identCounter int
 	errors       []string
-	reader       *bufio.Reader
+	reader       io.Reader
 	currentChar  rune
 }
 
@@ -56,7 +55,7 @@ func NewLexer(input interface{}) *Lexer {
 	case string:
 		lexer.inputRunes = []rune(v)
 	case io.Reader:
-		lexer.reader = bufio.NewReader(v)
+		lexer.reader = v
 		lexer.readChar()
 	default:
 		panic("NewLexer: input must be a string or io.Reader")
@@ -243,24 +242,33 @@ func (l *Lexer) GetAndConsumeChar() rune {
 }
 
 func (l *Lexer) readChar() {
-	r, _, err := l.reader.ReadRune()
+	buf := make([]byte, 1)
+	n, err := l.reader.Read(buf)
 	if err != nil {
 		if err == io.EOF {
 			l.currentChar = -1
 			return
 		}
-		fmt.Println(err)
+		fmt.Println("Ошибка чтения:", err)
+		l.currentChar = -1
+		return
 	}
 
-	if r == '\r' {
-		nextRune, err := l.reader.Peek(1)
-		if err == nil && len(nextRune) > 0 && nextRune[0] == '\n' {
-			l.reader.Discard(1)
+	if n > 0 {
+		r := rune(buf[0])
+		if r == '\r' {
+			// Попробуем заглянуть в следующий байт — вдруг это \n
+			n2, err2 := l.reader.Read(buf)
+			if err2 == nil && n2 > 0 && buf[0] == '\n' {
+				r = '\n'
+			} else {
+				r = '\n'
+			}
 		}
-		r = '\n'
+		l.currentChar = r
+	} else {
+		l.currentChar = -1
 	}
-
-	l.currentChar = r
 }
 
 func (l *Lexer) GetCurrentPosition() Position {
