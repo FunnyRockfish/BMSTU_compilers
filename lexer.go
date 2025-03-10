@@ -111,29 +111,36 @@ func (l *Lexer) NextToken() Token {
 
 	return tok
 }
-
 func (l *Lexer) RecognizeStringLiteral() string {
-	//l.ConsumeSymbol()
-	str := ""
-	for l.GetCurrentChar() != -1 {
+	var str string
+
+	for {
 		currChar := l.GetCurrentChar()
+		if currChar == -1 {
+			return str
+		}
+
 		if currChar == '\'' {
-			if l.PeekNextCharN(1) == '\'' {
-				l.ConsumeSymbol()
+			l.ConsumeSymbol()
+
+			if l.GetCurrentChar() == '\'' {
 				str += "'"
-			} else {
 				l.ConsumeSymbol()
+			} else {
 				return str
 			}
+
 		} else if currChar == '\n' {
-			err := fmt.Sprintf("Ошибка (%d,%d): Строка не может начинаться на одном лайне и заканчиваться на другом!", l.position.Line, l.position.Col)
+			err := fmt.Sprintf("Ошибка (%d,%d): Строка не может переходить на новую строку!",
+				l.position.Line, l.position.Col)
 			l.errors = append(l.errors, err)
+			l.ConsumeSymbol()
 		} else {
+			// Обычный символ, добавляем в итог и идём дальше.
 			str += string(currChar)
+			l.ConsumeSymbol()
 		}
-		l.ConsumeSymbol()
 	}
-	return str
 }
 
 func (l *Lexer) RecognizeRealNumber() string {
